@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Button, TitledGreyBox, httpErrorToHuman, toast, useCurrentServerRequired, useExtensionAction, useServerPermission } from '@pterodactyl/sdk';
+import { Alert, Button, Spinner, TitledGreyBox, httpErrorToHuman, toast, useCurrentServerRequired, useExtensionAction, useServerPermission } from '@pterodactyl/sdk';
 import { createLink, databasesKey, getDatabases, type ServerDatabase } from './api';
 import { isConfigured } from './config';
 
@@ -8,7 +8,27 @@ export default function PhpMyAdmin() {
     const allowed = useServerPermission('database.view_password');
     const databases = useQuery({ queryKey: databasesKey(identifier), queryFn: () => getDatabases(identifier), enabled: allowed && isConfigured() });
 
-    if (!allowed || !isConfigured() || !databases.data?.length) {
+    if (!allowed || !isConfigured()) {
+        return null;
+    }
+
+    if (databases.isPending) {
+        return (
+            <div className='pma:mx-4 pma:mt-4 pma:max-w-panel pma:sm:mt-6 pma:xl:mx-auto'>
+                <Spinner centered />
+            </div>
+        );
+    }
+
+    if (databases.isError) {
+        return (
+            <div className='pma:mx-4 pma:mt-4 pma:max-w-panel pma:sm:mt-6 pma:xl:mx-auto'>
+                <Alert type='warning'>{httpErrorToHuman(databases.error)}</Alert>
+            </div>
+        );
+    }
+
+    if (!databases.data.length) {
         return null;
     }
 
